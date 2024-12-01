@@ -5,7 +5,7 @@ from uuid import uuid4
 from jsonpath_ng.ext import parse
 from pydantic import TypeAdapter
 
-from .models import Expectation, Matcher, Outcomes, OutcomeTypes, Rule
+from .models import Expectation, Operator, Outcomes, OutcomeTypes, Rule
 
 
 class Empyre:
@@ -25,7 +25,7 @@ class Empyre:
             yield from self._eval_rule(rule)
 
     def _eval_rule(self, rule: Rule):
-        if self._match_expectations(Matcher.and_, rule.expectations):
+        if self._match_expectations(Operator.and_, rule.expectations):
             for outcome in rule.outcomes:
                 yield from self.apply(outcome)
 
@@ -33,16 +33,13 @@ class Empyre:
         self._log(f"Matching {exp}")
         if exp.recursive:
             return self._match_expectations(exp.operator, exp.value)
-        try:
-            ctx_vals = parse(exp.path).find(self.ctx)
-            match = any(exp.op.match(el.value, exp.value) for el in ctx_vals)
-            self._log(f"{exp} matches to {match}")
-            return match
-        except:
-            self._log(f"{exp} is invalid.\n{traceback.format_exc()}")
-        return False
+        ctx_vals = parse(exp.path).find(self.ctx)
+        v_transformation = str.lower if exp.ignore_case else lambda i: i
+        match = any(exp.op.eval(*map(v_transformation, (el.value, exp.value))) for el in ctx_vals)
+        self._log(f"{exp} matches to {match}")
+        return match == exp.truthfulness
 
-    def _match_expectations(self, op: Matcher, expectations: list[Expectation]):
+    def _match_expectations(self, op: Operator, expectations: list[Expectation]):
         return op.fun()(map(self._match, expectations))
 
     def _log(self, msg: str):

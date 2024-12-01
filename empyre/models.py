@@ -6,18 +6,16 @@ from jsonpath_ng.ext import parse
 from pydantic import BaseModel, Field
 
 
-class Matcher(StrEnum):
+class Operator(StrEnum):
     and_ = "and"
     or_ = "or"
     eq = "eq"
-    ne = "ne"
     gt = "gt"
     lt = "lt"
     ge = "ge"
     le = "le"
     in_ = "in"
-    like = "like"
-    ilike = "ilike"
+    lk = "like"
 
     @property
     def logical(self) -> bool:
@@ -25,31 +23,25 @@ class Matcher(StrEnum):
 
     @property
     def comparison(self) -> bool:
-        return self in {self.eq, self.ne, self.gt, self.lt, self.ge, self.le}
+        return self in {self.eq, self.gt, self.lt, self.ge, self.le, }
 
     @property
-    def membership(self) -> bool:
-        return self in {
-            self.in_,
-            self.like,
-            self.ilike,
-        }
+    def belonging(self) -> bool:
+        return self in {self.in_, self.lk}
 
     def fun(self, inst: Any = None) -> Callable:
         if self.logical:
             return all if self == self.and_ else any
-        if self.membership:
+        if self.belonging:
             return getattr(inst, "__contains__")
         return getattr(inst, f"__{self}__")
 
-    def match(self, v1: Any, v2: Any):
+    def eval(self, v1: Any, v2: Any):
         if self.logical:
             return self.fun()((v1, v2))
         elif self.comparison:
             return self.fun(v1)(type(v1)(v2))
-        elif self.membership:
-            if self == self.ilike:
-                v1, v2 = map(str.lower, (v1, v2))
+        elif self.belonging:
             return self.fun(v2)(v1)
 
 
@@ -62,8 +54,10 @@ class EmpyreEntity(BaseModel):
 
 
 class Expectation(EmpyreEntity):
-    operator: Matcher
     path: str
+    truthfulness: bool = True
+    operator: Operator
+    ignore_case: bool = False
     value: list["Expectation"] | Any
 
     @property
@@ -96,10 +90,9 @@ class EventOutcome(EmpyreEntity):
     data: list[str]
 
     def model_dump(self, *args, **kwargs) -> dict[str, Any]:
+        ctx, *args = args
         ret = super().model_dump(*args, **kwargs)
-        ret["data"] = [
-            v.value for jpath in self.data for v in parse(jpath).find(args[0])
-        ]
+        ret["data"] = [v.value for jpath in self.data for v in parse(jpath).find(ctx)]
         return ret
 
 
