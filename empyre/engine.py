@@ -1,5 +1,4 @@
 import logging
-import traceback
 from uuid import uuid4
 
 from jsonpath_ng.ext import parse
