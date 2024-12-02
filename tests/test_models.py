@@ -13,6 +13,9 @@ def test_fun():
     for case_val, ko in (
         (1, 2),
         ("a", "b"),
+        (True, False),
+        (1, False),
+        (0, False),
     ):
         fun = Operator.eq.fun(case_val)
         assert callable(fun)
