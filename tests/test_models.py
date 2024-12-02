@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from empyre.models import EventOutcome, Expectation, Operator, Rule
+from empyre.models import Operator, Rule, Expectation, EventOutcome
 
 
 def test_fun():
@@ -180,28 +180,31 @@ def test_models():
     assert not Rule(until=datetime.now() - timedelta(seconds=1)).applicable
     assert not Rule(
         since=datetime.now() - timedelta(seconds=2),
-        until=datetime.now() - timedelta(seconds=1),
+        until=datetime.now() - timedelta(seconds=1)
     ).applicable
     assert not Rule(
         since=datetime.now() + timedelta(seconds=1),
-        until=datetime.now() + timedelta(seconds=2),
+        until=datetime.now() + timedelta(seconds=2)
     ).applicable
     assert not Rule(
         active=False,
         since=datetime.now() - timedelta(seconds=1),
-        until=datetime.now() + timedelta(seconds=1),
+        until=datetime.now() + timedelta(seconds=1)
     ).applicable
 
     assert Rule().applicable
     assert Rule(
         since=datetime.now() - timedelta(seconds=1),
-        until=datetime.now() + timedelta(seconds=1),
+        until=datetime.now() + timedelta(seconds=1)
     ).applicable
 
-    assert EventOutcome(
-        event_id="test", data=["$.foo", "$.bar", "$.bazinga.bam"]
-    ).model_dump(
-        {"foo": "foz", "bar": "baz", "bazinga": {"bam": "bazingaz"}}, mode="json"
+    assert EventOutcome(event_id="test", data=[
+        "$.foo",
+        "$.bar",
+        "$.bazinga.bam"
+    ]).model_dump(
+        {"foo": "foz", "bar": "baz", "bazinga": {"bam": "bazingaz"}},
+        mode="json"
     ) == {
         "id": None,
         "name": None,
@@ -211,7 +214,7 @@ def test_models():
             "foo": "foz",
             "bar": "baz",
             "bam": "bazingaz",
-        },
+        }
     }
 
     assert str(EventOutcome(id=1, name="test", event_id="1")) == "EventOutcome(1)<test>"

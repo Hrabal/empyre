@@ -85,11 +85,11 @@ class EmpyreEntity(BaseModel):
 
 
 class Expectation(EmpyreEntity):
-    path: str
+    path: str = None
     truthfulness: bool = True
     operator: Operator
     ignore_case: bool = False
-    value: list["Expectation"] | Any
+    value: list["Expectation"] | str | int | float
 
     @property
     def recursive(self):

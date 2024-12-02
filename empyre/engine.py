@@ -35,7 +35,7 @@ class Empyre:
         ctx_vals = parse(exp.path).find(self.ctx)
         v_transformation = str.lower if exp.ignore_case else lambda i: i
         match = any(
-            exp.op.eval(*map(v_transformation, (el.value, exp.value)))
+            exp.operator.eval(*map(v_transformation, (el.value, exp.value)))
             for el in ctx_vals
         )
         self._log(f"{exp} matches to {match}")
