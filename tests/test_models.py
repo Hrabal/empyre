@@ -1,4 +1,8 @@
-from empyre.models import Operator
+from datetime import datetime, timedelta
+
+import pytest
+
+from empyre.models import EventOutcome, Expectation, Operator, Rule
 
 
 def test_fun():
@@ -10,78 +14,211 @@ def test_fun():
     assert callable(fun)
     assert fun is any
 
-    for case_val, ko in (
-        (1, 2),
-        ("a", "b"),
-        (True, False),
-        (1, False),
-        (0, False),
+    for op, expected_fun in (
+        (Operator.eq, "__eq__"),
+        (Operator.gt, "__gt__"),
+        (Operator.lt, "__lt__"),
+        (Operator.ge, "__ge__"),
+        (Operator.le, "__le__"),
     ):
-        fun = Operator.eq.fun(case_val)
-        assert callable(fun)
-        assert type(case_val).__eq__(case_val, case_val) == fun(case_val)
-        assert type(case_val).__eq__(case_val, ko) == fun(ko)
+        for v1, v2 in (
+            (1, 2),
+            (1, -1),
+            ("a", "b"),
+            (True, False),
+            (1, False),
+            (0, False),
+        ):
+            fun = op.fun(v1)
+            assert callable(fun)
+            assert getattr(type(v1), expected_fun)(v1, v1) == fun(v1)
+            assert getattr(type(v1), expected_fun)(v1, v2) == fun(v2)
 
-    for case_val, ko in (
-        (1, 2),
-        ("a", "b"),
+    for case_val, v in (
+        ("123", "2"),
+        ([1, 2, 3], 2),
+        ((1, 2, 3), 4),
+        ([1, 2, 3], 2),
+        ([1, 2, 3], 4),
+        ({1, 2, 3}, 2),
+        ({1, 2, 3}, 4),
     ):
-        fun = Operator.ne.fun(case_val)
-        assert callable(fun)
-        assert type(case_val).__ne__(case_val, case_val) == fun(case_val)
-        assert type(case_val).__ne__(case_val, ko) == fun(ko)
-
-    for case_val, ko, ko2 in (
-        (1, 2, -1),
-        ("b", "a", "c"),
-    ):
-        fun = Operator.gt.fun(case_val)
-        assert callable(fun)
-        assert type(case_val).__gt__(case_val, case_val) == fun(case_val)
-        assert type(case_val).__gt__(case_val, ko) == fun(ko)
-        assert type(case_val).__gt__(case_val, ko2) == fun(ko2)
-
-    for case_val, ko, ko2 in (
-        (1, 2, -1),
-        ("b", "a", "c"),
-    ):
-        fun = Operator.lt.fun(case_val)
-        assert callable(fun)
-        assert type(case_val).__lt__(case_val, case_val) == fun(case_val)
-        assert type(case_val).__lt__(case_val, ko) == fun(ko)
-        assert type(case_val).__lt__(case_val, ko2) == fun(ko2)
-
-    for case_val, ko, ko2 in (
-        (1, 2, -1),
-        ("b", "a", "c"),
-    ):
-        fun = Operator.ge.fun(case_val)
-        assert callable(fun)
-        assert type(case_val).__ge__(case_val, case_val) == fun(case_val)
-        assert type(case_val).__ge__(case_val, ko) == fun(ko)
-        assert type(case_val).__ge__(case_val, ko2) == fun(ko2)
-
-    for case_val, ko, ko2 in (
-        (1, 2, -1),
-        ("b", "a", "c"),
-    ):
-        fun = Operator.le.fun(case_val)
-        assert callable(fun)
-        assert type(case_val).__le__(case_val, case_val) == fun(case_val)
-        assert type(case_val).__le__(case_val, ko) == fun(ko)
-        assert type(case_val).__le__(case_val, ko2) == fun(ko2)
-
-    for case_val, ok, ko in (("123", "2", "4"), ([1, 2, 3], 2, 4), ((1, 2, 3), 2, 4)):
         fun = Operator.in_.fun(case_val)
         assert callable(fun)
-        assert fun(ok)
-        assert not fun(ko)
-        assert case_val.__contains__(ok) == fun(ok)
-        assert case_val.__contains__(ko) == fun(ko)
+        assert case_val.__contains__(v) == fun(v)
 
-    fun = Operator.like.fun("122")
-    assert callable(fun)
-    assert fun("1")
-    assert "122".__contains__("1")
-    assert "122".__contains__("1") == fun("1")
-    assert "122".__contains__("3") == fun("3")
+    for case_val, v in (
+        ("foo", "o"),
+        ("foo", "bar"),
+        ("foo", "bar"),
+    ):
+        fun = Operator.lk.fun("foo")
+        assert callable(fun)
+        assert (v in case_val) == fun(v)
+
+
+def test_eval():
+    for v1, v2 in (
+        (True, False),
+        (True, True),
+        (None, False),
+        (None, True),
+        (None, 1),
+        (None, 0),
+        ("a", 0),
+        ("a", "b"),
+    ):
+        assert Operator.and_.eval(v1, v2) == all((v1, v2))
+
+    for v1, v2 in (
+        (True, False),
+        (True, True),
+        (None, False),
+        (None, True),
+        (None, 1),
+        (None, 0),
+        (-1, 1),
+        (1, -1),
+        ("a", 0),
+        ("a", "b"),
+    ):
+        assert Operator.eq.eval(v1, v2) == (v1 == v2)
+
+    for v1, v2 in (
+        (True, False),
+        (True, True),
+        (None, False),
+        (None, True),
+        (None, 1),
+        (None, 0),
+        (-1, 1),
+        (1, -1),
+        ("a", 0),
+        ("a", "b"),
+    ):
+        if v1 is None:
+            assert Operator.gt.eval(v1, v2) == bool(v2)
+        else:
+            assert Operator.gt.eval(v1, v2) == (v1 > Operator._cast(v1, v2))
+
+    for v1, v2 in (
+        (True, False),
+        (True, True),
+        (None, False),
+        (None, True),
+        (None, 1),
+        (None, 0),
+        (-1, 1),
+        (1, -1),
+        ("a", 0),
+        ("a", "b"),
+    ):
+        if v1 is None:
+            with pytest.raises(TypeError):
+                assert Operator.lt.eval(v1, v2)
+        else:
+            assert Operator.lt.eval(v1, v2) == (v1 < Operator._cast(v1, v2))
+
+    for v1, v2 in (
+        (True, False),
+        (True, True),
+        (None, False),
+        (None, True),
+        (None, 1),
+        (None, 0),
+        (-1, 1),
+        (1, -1),
+        ("a", 0),
+        ("a", "b"),
+    ):
+        if v1 is None:
+            assert Operator.ge.eval(v1, v2)
+        else:
+            assert Operator.ge.eval(v1, v2) == (v1 >= Operator._cast(v1, v2))
+
+    for v1, v2 in (
+        (True, False),
+        (True, True),
+        (None, False),
+        (None, True),
+        (None, 1),
+        (None, 0),
+        (-1, 1),
+        (1, -1),
+        ("a", 0),
+        ("a", "b"),
+    ):
+        if v1 is None:
+            assert Operator.le.eval(v1, v2) == (not bool(v2))
+        else:
+            assert Operator.le.eval(v1, v2) == (v1 <= Operator._cast(v1, v2))
+
+    for v1, v2 in (
+        ("123", "2"),
+        ([1, 2, 3], 2),
+        ((1, 2, 3), 4),
+        ([1, 2, 3], 2),
+        ([1, 2, 3], 4),
+        ({1, 2, 3}, 2),
+        ({1, 2, 3}, 4),
+    ):
+        fun = Operator.in_.fun(v1)
+        assert callable(fun)
+        assert Operator.in_.eval(v2, v1) == (v2 in v1)
+
+    for v1, v2 in (
+        ("foo", "o"),
+        ("foo", "bar"),
+        ("foo", "bar"),
+    ):
+        assert Operator.lk.eval(v2, v1) == (v2 in v1)
+
+
+def test_models():
+    assert not Rule(active=False).applicable
+    assert not Rule(since=datetime.now() + timedelta(seconds=1)).applicable
+    assert not Rule(until=datetime.now() - timedelta(seconds=1)).applicable
+    assert not Rule(
+        since=datetime.now() - timedelta(seconds=2),
+        until=datetime.now() - timedelta(seconds=1),
+    ).applicable
+    assert not Rule(
+        since=datetime.now() + timedelta(seconds=1),
+        until=datetime.now() + timedelta(seconds=2),
+    ).applicable
+    assert not Rule(
+        active=False,
+        since=datetime.now() - timedelta(seconds=1),
+        until=datetime.now() + timedelta(seconds=1),
+    ).applicable
+
+    assert Rule().applicable
+    assert Rule(
+        since=datetime.now() - timedelta(seconds=1),
+        until=datetime.now() + timedelta(seconds=1),
+    ).applicable
+
+    assert EventOutcome(
+        event_id="test", data=["$.foo", "$.bar", "$.bazinga.bam"]
+    ).model_dump(
+        {"foo": "foz", "bar": "baz", "bazinga": {"bam": "bazingaz"}}, mode="json"
+    ) == {
+        "id": None,
+        "name": None,
+        "typ": "EVENT",
+        "event_id": "test",
+        "data": {
+            "foo": "foz",
+            "bar": "baz",
+            "bam": "bazingaz",
+        },
+    }
+
+    assert str(EventOutcome(id=1, name="test", event_id="1")) == "EventOutcome(1)<test>"
+
+    exp1 = Expectation(path="$.foo", operator=Operator.eq, value="bar")
+    assert not exp1.recursive
+    exp2 = Expectation(path="$.foo", operator=Operator.eq, value=1)
+    assert not exp2.recursive
+    exp3 = Expectation(path="$.baz", operator=Operator.eq, value=[exp1, exp2])
+    assert exp3.recursive

@@ -35,7 +35,10 @@ class Empyre:
             return self._match_expectations(exp.operator, exp.value)
         ctx_vals = parse(exp.path).find(self.ctx)
         v_transformation = str.lower if exp.ignore_case else lambda i: i
-        match = any(exp.op.eval(*map(v_transformation, (el.value, exp.value))) for el in ctx_vals)
+        match = any(
+            exp.op.eval(*map(v_transformation, (el.value, exp.value)))
+            for el in ctx_vals
+        )
         self._log(f"{exp} matches to {match}")
         return match == exp.truthfulness
 
