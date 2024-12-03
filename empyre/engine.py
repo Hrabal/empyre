@@ -19,7 +19,7 @@ class Empyre:
     def evaluate(self):
         self.id = uuid4().hex
         active_rules = list(filter(lambda r: r.root and r.applicable, self.rules))
-        self._log(f"{self.ctx} against rules {' '.join(map(str, active_rules))}")
+        self._log(f"Eval {self.ctx} against rules {' '.join(map(str, active_rules))}")
         for rule in active_rules:
             yield from self._eval_rule(rule)
 
@@ -31,7 +31,9 @@ class Empyre:
     def _match(self, exp: Expectation) -> bool:
         self._log(f"Matching {exp}")
         if exp.recursive:
-            return self._match_expectations(exp.operator, exp.value)
+            match = self._match_expectations(exp.operator, exp.value)
+            self._log(f"{exp} matches to {match}")
+            return match
         ctx_vals = parse(exp.path).find(self.ctx)
         v_transformation = str.lower if exp.ignore_case else lambda i: i
         match = any(
@@ -39,12 +41,13 @@ class Empyre:
             for el in ctx_vals
         )
         self._log(f"{exp} matches to {match}")
-        return match == exp.truthfulness
+        return match == exp.comp.truth
 
-    def _match_expectations(self, op: Operator, expectations: list[Expectation]):
+    def _match_expectations(self, op: Operator, expectations: list[Expectation]) -> bool:
         return op.fun()(map(self._match, expectations))
 
     def _log(self, msg: str):
+        print(f"Evaluation[{self.id}] {msg}")
         self._logger.debug(f"Evaluation[{self.id}] {msg}")
 
     def apply(self, outcome: Outcomes):

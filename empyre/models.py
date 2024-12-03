@@ -23,6 +23,15 @@ class ComparableNone:
         return not bool(other)
 
 
+class Comparator(StrEnum):
+    is_ = "is"
+    not_ = "not"
+
+    @property
+    def truth(self) -> bool:
+        return self == self.is_
+
+
 class Operator(StrEnum):
     and_ = "and"
     or_ = "or"
@@ -63,7 +72,7 @@ class Operator(StrEnum):
 
     @staticmethod
     def _cast(v1: Any, v2: Any):
-        if v1 is None or isinstance(v2, type(v1)):
+        if v1 is None or v2 is None or isinstance(v2, type(v1)):
             return v2
         return type(v1)(v2)
 
@@ -86,10 +95,10 @@ class EmpyreEntity(BaseModel):
 
 class Expectation(EmpyreEntity):
     path: str = None
-    truthfulness: bool = True
+    comp: Comparator = Comparator.is_
     operator: Operator
     ignore_case: bool = False
-    value: list["Expectation"] | str | int | float
+    value: list["Expectation"] | Any = Field(union_mode="left_to_right")
 
     @property
     def recursive(self):
@@ -97,6 +106,11 @@ class Expectation(EmpyreEntity):
             return isinstance(self.value[0], self.__class__)
         except (TypeError, IndexError):
             return False
+
+    def __str__(self):
+        if self.operator.logical:
+            return f"{self.__class__.__name__}({self.id})<{self.operator}>"
+        return f"{self.__class__.__name__}({self.id})<{self.path} {self.comp} {self.operator} {self.value}>"
 
 
 class OutcomeTypes(StrEnum):

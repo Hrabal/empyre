@@ -14,7 +14,12 @@ pydantic = "^2.10.2"
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"
+radon = "^6.0.1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[radon]
+exclude = "test_*.py"
+cc_min = "B"
