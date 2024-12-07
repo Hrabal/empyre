@@ -6,128 +6,140 @@ from empyre import Empyre
 
 
 def test_engine():
+    # Test for no outcomes
+    results = Empyre().outcomes()
+    assert not list(results)
+
+    # Test simple eq
     result = Empyre(
         [
             {
-                "expectations": [{"path": "$.foo", "operator": "eq", "value": "bar"}],
+                "matchers": [{"path": "$.foo", "op": "eq", "value": "bar"}],
                 "outcomes": [{"typ": "VALUE", "value": "42"}],
             }
         ],
         {"foo": "bar"},
-    ).evaluate()
+    ).outcomes()
     outcome = next(result)
     assert outcome["typ"] == "VALUE"
     assert outcome["value"] == "42"
-
-    result = Empyre(
-        [
-            {
-                "expectations": [{"path": "$.foo", "operator": "eq", "value": "baz"}],
-                "outcomes": [{"typ": "VALUE", "value": "42"}],
-            }
-        ],
-        {"foo": "bar"},
-    ).evaluate()
     with pytest.raises(StopIteration):
         next(result)
 
     result = Empyre(
         [
             {
-                "expectations": [{"path": "$.foo", "operator": "eq", "value": "bar"}],
+                "matchers": [{"path": "$.foo", "op": "eq", "value": "baz"}],
+                "outcomes": [{"typ": "VALUE", "value": "42"}],
+            }
+        ],
+        {"foo": "bar"},
+    ).outcomes()
+    with pytest.raises(StopIteration):
+        next(result)
+
+    # Test nested logic
+    result = Empyre(
+        [
+            {
+                "matchers": [{"path": "$.foo", "op": "eq", "value": "bar"}],
                 "outcomes": [
                     {"typ": "VALUE", "value": "42"},
-                    {"typ": "LOGIC", "logic_id": 2},
+                    {"typ": "LOGIC", "rule_id": 2},
                 ],
             },
             {
                 "id": 2,
-                "expectations": [{"path": "$.baz", "operator": "ge", "value": 42}],
+                "matchers": [{"path": "$.baz", "op": "ge", "value": 42}],
                 "outcomes": [{"typ": "VALUE", "value": True}],
                 "root": False,
             },
         ],
         {"foo": "bar", "baz": 42},
-    ).evaluate()
+    ).outcomes()
     outcome = next(result)
     assert outcome["typ"] == "VALUE"
     assert outcome["value"] == "42"
     outcome = next(result)
     assert outcome["typ"] == "VALUE"
     assert outcome["value"]
+    with pytest.raises(StopIteration):
+        next(result)
 
     result = Empyre(
         [
             {
-                "expectations": [
+                "matchers": [
                     {
-                        "operator": "and",
-                        "expectations": [
-                            {"path": "$.baz", "operator": "ge", "value": 42},
-                            {"path": "$.foo", "operator": "eq", "value": "bar"},
+                        "op": "and",
+                        "matchers": [
+                            {"path": "$.baz", "op": "ge", "value": 42},
+                            {"path": "$.foo", "op": "eq", "value": "bar"},
                         ],
                     }
                 ],
                 "outcomes": [
-                    {"typ": "EVENT", "event_id": "test", "data": ["$.foo"]},
+                    {"typ": "EVENT", "event_id": "test", "data": ["$.foo", "test"]},
                 ],
             }
         ],
         {"foo": "bar", "baz": 42},
-    ).evaluate()
+    ).outcomes()
     outcome = next(result)
     assert outcome["typ"] == "EVENT"
-    assert outcome["data"] == {"foo": "bar"}
+    assert outcome["data"] == {"foo": "bar", "values": ["test"]}
     assert outcome["event_id"] == "test"
+    with pytest.raises(StopIteration):
+        next(result)
 
     result = Empyre(
         [
             {
                 "id": 1,
                 "name": "passing",
-                "expectations": [
+                "matchers": [
                     {
-                        "operator": "and",
-                        "expectations": [
-                            {"path": "$.string", "operator": "eq", "value": "bar"},
-                            {"path": "$.int", "operator": "ge", "value": 42},
+                        "op": "and",
+                        "matchers": [
+                            {"path": "$.string", "op": "eq", "value": "bar"},
+                            {"path": "$.int", "op": "ge", "value": 42},
                         ],
                     },
                     {
-                        "operator": "or",
-                        "expectations": [
+                        "op": "or",
+                        "matchers": [
                             {
                                 "path": "$.past_datetime",
-                                "operator": "eq",
+                                "op": "eq",
                                 "value": datetime.now(),
                             },
                             {
                                 "path": "$.past_datetime",
-                                "operator": "lt",
+                                "op": "lt",
                                 "value": datetime.now(),
                             },
                         ],
                     },
-                    {"path": "$.zero", "operator": "lt", "value": 1},
-                    {"path": "$.float", "operator": "gt", "value": -0.1},
-                    {"path": "$.none", "operator": "eq", "value": None},
-                    {"path": "$.none", "operator": "eq", "value": None},
-                    {"path": "$.float", "comp": "not", "operator": "eq", "value": None},
-                    {"path": "$.int", "comp": "not", "operator": "in", "value": [1, 2]},
-                    {"path": "$.int_list[-1]", "operator": "in", "value": {3, 2}},
-                    {"path": "$.str_list.`len`", "operator": "gt", "value": 0},
+                    {"path": "$.zero", "op": "lt", "value": 1},
+                    {"path": "$.float", "op": "gt", "value": -0.1},
+                    {"path": "$.none", "op": "eq", "value": None},
+                    {"path": "$.none", "op": "eq", "value": None},
+                    {"path": "$.float", "comp": "not", "op": "eq", "value": None},
+                    {"path": "$.int", "comp": "not", "op": "in", "value": [1, 2]},
+                    {"path": "$.int_list[-1]", "op": "in", "value": {3, 2}},
+                    {"path": "$.str_list.`len`", "op": "gt", "value": 0},
                     {
                         "path": "$.dict_list[?id = 1].field",
-                        "operator": "eq",
+                        "op": "eq",
                         "value": "test",
                     },
                     {
                         "path": "$.dict_list[?id > 1].field",
-                        "operator": "eq",
+                        "op": "eq",
                         "value": "test2",
                     },
-                    {"path": "$.int_tuple[0] + $.int", "operator": "eq", "value": 43},
-                    {"path": "$.nested.key", "operator": "like", "value": "a"},
+                    {"path": "$.int_tuple[0] + $.int", "op": "eq", "value": 43},
+                    {"path": "$.nested.key", "op": "like", "value": "a"},
                 ],
                 "outcomes": [
                     {"typ": "EVENT", "event_id": "test", "data": ["$.string"]},
@@ -136,8 +148,8 @@ def test_engine():
             {
                 "id": 2,
                 "name": "failing",
-                "expectations": [
-                    {"path": "$.nested.key", "operator": "like", "value": "failure"},
+                "matchers": [
+                    {"path": "$.nested.key", "op": "like", "value": "failure"},
                 ],
                 "outcomes": [
                     {
@@ -160,7 +172,7 @@ def test_engine():
             "int_tuple": (1, 2, 3),
             "nested": {"key": "val"},
         },
-    ).evaluate()
+    ).outcomes()
     outcome = next(result)
     assert outcome["typ"] == "EVENT"
     assert outcome["data"] == {"string": "bar"}
