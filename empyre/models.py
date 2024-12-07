@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, Type
 
 from jsonpath_ng.ext import parse
 from pydantic import BaseModel, Field
@@ -57,32 +57,12 @@ class Operator(StrEnum):
             self.le,
         }
 
-    @property
-    def belonging(self) -> bool:
-        return self in {self.in_, self.lk}
-
     def fun(self, inst: Any = None) -> Callable:
         if self.logical:
             return all if self == self.and_ else any
-        if self.belonging:
-            return getattr(inst, "__contains__")
         if inst is None:
             inst = ComparableNone()
         return getattr(inst, f"__{self}__")
-
-    @staticmethod
-    def _cast(v1: Any, v2: Any):
-        if v1 is None or v2 is None or isinstance(v2, type(v1)):
-            return v2
-        return type(v1)(v2)
-
-    def eval(self, v1: Any, v2: Any):
-        if self.logical:
-            return self.fun()((bool(v1), bool(v2)))
-        elif self.comparison:
-            return self.fun(v1)(self._cast(v1, v2))
-        elif self.belonging:
-            return self.fun(v2)(v1)
 
 
 class EmpyreEntity(BaseModel):
@@ -90,27 +70,21 @@ class EmpyreEntity(BaseModel):
     name: str | None = None
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.id})<{self.name}>"
+        return f"{self.__class__.__name__}({self.id or ''})<{self.name or ''}>"
 
 
 class Expectation(EmpyreEntity):
     path: str = None
     comp: Comparator = Comparator.is_
     operator: Operator
+    value: Any = None
     ignore_case: bool = False
-    value: list["Expectation"] | Any = Field(union_mode="left_to_right")
-
-    @property
-    def recursive(self):
-        try:
-            return isinstance(self.value[0], self.__class__)
-        except (TypeError, IndexError):
-            return False
+    expectations: list["Expectation"] = None
 
     def __str__(self):
         if self.operator.logical:
-            return f"{self.__class__.__name__}({self.id})<{self.operator}>"
-        return f"{self.__class__.__name__}({self.id})<{self.path} {self.comp} {self.operator} {self.value}>"
+            return f"{self.__class__.__name__}({self.id or ''})<{self.operator}>"
+        return f"{self.__class__.__name__}({self.id or ''})<{self.path} {self.comp} {self.operator} {self.value}>"
 
 
 class OutcomeTypes(StrEnum):
