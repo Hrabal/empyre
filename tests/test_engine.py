@@ -26,6 +26,22 @@ def test_engine():
     with pytest.raises(StopIteration):
         next(result)
 
+    # Test simple eq
+    result = Empyre(
+        [
+            {
+                "matchers": [{"path": "$.foo", "op": "eq", "value": None}],
+                "outcomes": [{"typ": "VALUE", "value": "42"}],
+            }
+        ],
+        {"foo": None},
+    ).outcomes()
+    outcome = next(result)
+    assert outcome["typ"] == "VALUE"
+    assert outcome["value"] == "42"
+    with pytest.raises(StopIteration):
+        next(result)
+
     result = Empyre(
         [
             {
