@@ -22,7 +22,6 @@ class Empyre:
         self.ctx = ctx or {}
 
     def _log(self, msg: str):
-        print(f"Evaluation[{self.id}] {msg}")
         self._logger.debug(f"Evaluation[{self.id}] {msg}")
 
     def outcomes(self):
