@@ -179,7 +179,6 @@ class DataOutcome(Outcome):
         ret = super().model_dump(*args, **kwargs)
         ret["data"] = {}
         for el in self.data:
-            print(el)
             try:
                 matches = parse(el).find(ctx)
                 if not matches:

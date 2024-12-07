@@ -171,7 +171,7 @@ def test_engine():
                         "value": "test2",
                     },
                     {"path": "$.int_tuple[0] + $.int", "op": "eq", "value": 43},
-                    {"path": "$.nested.key", "op": "like", "value": "a"},
+                    {"path": "$.nested.key", "op": "re", "value": ".*v.*"},
                 ],
                 "outcomes": [
                     {"typ": "EVENT", "event_id": "test", "data": ["$.string"]},
@@ -181,7 +181,7 @@ def test_engine():
                 "id": 2,
                 "name": "failing",
                 "matchers": [
-                    {"path": "$.nested.key", "op": "like", "value": "failure"},
+                    {"path": "$.nested.key", "op": "re", "value": "failure"},
                 ],
                 "outcomes": [
                     {
