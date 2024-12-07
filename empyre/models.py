@@ -28,7 +28,7 @@ class CompNone:
 
     def __lt__(self, other):
         """Everything is not lesser"""
-        raise False
+        return False
 
 
 class Comparator(StrEnum):

@@ -32,7 +32,23 @@ def test_engine():
             {
                 "matchers": [{"path": "$.foo", "op": "eq", "value": None}],
                 "outcomes": [{"typ": "VALUE", "value": "42"}],
-            }
+            },
+            {
+                "matchers": [{"path": "$.foo", "op": "gt", "value": "test"}],
+                "outcomes": [{"typ": "VALUE", "value": "42"}],
+            },
+            {
+                "matchers": [{"path": "$.foo", "op": "lt", "value": "test"}],
+                "outcomes": [{"typ": "VALUE", "value": "42"}],
+            },
+            {
+                "matchers": [{"path": "$.foo", "op": "le", "value": "test"}],
+                "outcomes": [{"typ": "VALUE", "value": "42"}],
+            },
+            {
+                "matchers": [{"path": "$.foo", "op": "ge", "value": "test"}],
+                "outcomes": [{"typ": "VALUE", "value": "42"}],
+            },
         ],
         {"foo": None},
     ).outcomes()
