@@ -20,13 +20,11 @@ class Empyre:
     def evaluate(self):
         self.id = uuid4().hex
         active_rules = list(filter(lambda r: r.root and r.applicable, self.rules))
-        self._log(f"Eval {self.ctx} against rules {' '.join(map(str, active_rules))}")
         for rule in active_rules:
             yield from self._eval_rule(rule)
 
     def _eval_rule(self, rule: Rule):
         out = self._match_expectations(Operator.and_, rule.expectations)
-        self._log(f"{rule} outcome: {out}")
         if out:
             for outcome in rule.outcomes:
                 yield from self.apply(outcome)
@@ -38,10 +36,8 @@ class Empyre:
         return val
 
     def _match(self, exp: Expectation) -> bool:
-        self._log(f"Matching {exp}")
         if exp.expectations:
             match = self._match_expectations(exp.operator, exp.expectations)
-            self._log(f"{exp} matches to {match}")
             return match
         matches = []
         vals = []
@@ -57,8 +53,6 @@ class Empyre:
             elif exp.operator.comparison:
                 fun = exp.operator.fun(val)
                 matches.append(fun(exp.value))
-        if not any(matches) == exp.comp.truth:
-            self._log(f"{exp.comp.truth=}: {matches=} {vals=}")
         return any(matches) == exp.comp.truth
 
     def _match_expectations(self, op: Operator, expectations: list[Expectation]) -> bool:
@@ -66,11 +60,9 @@ class Empyre:
         return op.fun()(res)
 
     def _log(self, msg: str):
-        print(f"Evaluation[{self.id}] {msg}")
         self._logger.debug(f"Evaluation[{self.id}] {msg}")
 
     def apply(self, outcome: Outcomes):
-        self._log(f"Applying {outcome}")
         if outcome.typ == OutcomeTypes.LOGIC:
             child_rule = next(filter(lambda r: r.id == outcome.logic_id, self.rules))
             yield from self._eval_rule(child_rule)
