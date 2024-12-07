@@ -54,7 +54,7 @@ class Operator(StrEnum):
     ge = "ge"
     le = "le"
     in_ = "in"
-    lk = "like"
+    re = "re"
 
     @property
     def logical(self) -> bool:
