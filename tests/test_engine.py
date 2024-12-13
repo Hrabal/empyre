@@ -5,7 +5,7 @@ import pytest
 from empyre import Empyre
 
 
-def test_engine():
+def test_empty_engine():
     # Test no outcomes with no rules
     results = Empyre().outcomes()
     assert not list(results)
@@ -19,6 +19,8 @@ def test_engine():
         ]).outcomes()
     assert not list(results)
 
+
+def test_comparison():
     # Test simple eq
     result = Empyre(
         [
@@ -51,6 +53,8 @@ def test_engine():
     with pytest.raises(StopIteration):
         next(result)
 
+
+def test_none_comparison():
     # Test comparison with None
     result = Empyre(
         [
@@ -85,6 +89,8 @@ def test_engine():
     with pytest.raises(StopIteration):
         next(result)
 
+
+def test_nested():
     # Test nested rules
     result = Empyre(
         [
@@ -162,7 +168,7 @@ def test_engine():
                     {
                         "op": "or",
                         "matchers": [
-                            {"path": "$.baz", "op": "le", "value": 42},
+                            {"path": "$.baz", "op": "lt", "value": 42},
                             {"path": "$.foo", "op": "eq", "value": "bam"},
                         ],
                     },
@@ -186,6 +192,8 @@ def test_engine():
     with pytest.raises(StopIteration):
         next(result)
 
+
+def test_event_rendering():
     # Test event outcome:
     result = Empyre(
         [
@@ -206,6 +214,8 @@ def test_engine():
     assert outcome["data"] == {"foo": "bar", "values": ["test"]}
     assert outcome["event_id"] == "test"
 
+
+def test_complex_rules():
     # Test complex rules/all operators
     result = Empyre(
         [
