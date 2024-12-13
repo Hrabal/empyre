@@ -112,7 +112,7 @@ class Empyre:
 
     def _produce(self, outcome: Outcomes):
         """Applies the outcome if needed , or yields the dumped outcome."""
-        if outcome.typ == OutcomeTypes.LOGIC:
+        if outcome.typ == OutcomeTypes.RULE:
             child_rule = self.rules[outcome.rule_id]
             if child_rule.applicable:
                 yield from self._eval_rule(child_rule)

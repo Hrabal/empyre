@@ -128,7 +128,7 @@ class Matcher(EmpyreModel):
 
 
 class OutcomeTypes(StrEnum):
-    LOGIC = "LOGIC"
+    RULE = "RULE"
     VALUE = "VALUE"
     DATA = "DATA"
     EVENT = "EVENT"
@@ -148,7 +148,7 @@ class RuleOutcome(Outcome):
     allowing for creating evaluation directed graphs.
     """
 
-    typ: Literal[OutcomeTypes.LOGIC] = OutcomeTypes.LOGIC
+    typ: Literal[OutcomeTypes.RULE] = OutcomeTypes.RULE
     rule_id: int = Field(..., description="The rule id to evaluate next.")
 
 

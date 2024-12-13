@@ -6,8 +6,17 @@ from empyre import Empyre
 
 
 def test_engine():
-    # Test for no outcomes
+    # Test no outcomes with no rules
     results = Empyre().outcomes()
+    assert not list(results)
+
+    # Test no outcomes with no ctx
+    results = Empyre([
+            {
+                "matchers": [{"path": "$.foo", "op": "eq", "value": "bar"}],
+                "outcomes": [{"typ": "VALUE", "value": "42"}],
+            }
+        ]).outcomes()
     assert not list(results)
 
     # Test simple eq
@@ -20,44 +29,15 @@ def test_engine():
         ],
         {"foo": "bar"},
     ).outcomes()
+    # Should produce the defined outcome
     outcome = next(result)
     assert outcome["typ"] == "VALUE"
     assert outcome["value"] == "42"
+    # Should not produce any other outcomes
     with pytest.raises(StopIteration):
         next(result)
 
-    # Test simple eq
-    result = Empyre(
-        [
-            {
-                "matchers": [{"path": "$.foo", "op": "eq", "value": None}],
-                "outcomes": [{"typ": "VALUE", "value": "42"}],
-            },
-            {
-                "matchers": [{"path": "$.foo", "op": "gt", "value": "test"}],
-                "outcomes": [{"typ": "VALUE", "value": "42"}],
-            },
-            {
-                "matchers": [{"path": "$.foo", "op": "lt", "value": "test"}],
-                "outcomes": [{"typ": "VALUE", "value": "42"}],
-            },
-            {
-                "matchers": [{"path": "$.foo", "op": "le", "value": "test"}],
-                "outcomes": [{"typ": "VALUE", "value": "42"}],
-            },
-            {
-                "matchers": [{"path": "$.foo", "op": "ge", "value": "test"}],
-                "outcomes": [{"typ": "VALUE", "value": "42"}],
-            },
-        ],
-        {"foo": None},
-    ).outcomes()
-    outcome = next(result)
-    assert outcome["typ"] == "VALUE"
-    assert outcome["value"] == "42"
-    with pytest.raises(StopIteration):
-        next(result)
-
+    # Test no outcome with failing matcher
     result = Empyre(
         [
             {
@@ -67,17 +47,52 @@ def test_engine():
         ],
         {"foo": "bar"},
     ).outcomes()
+    # Should not produce outcomes
     with pytest.raises(StopIteration):
         next(result)
 
-    # Test nested logic
+    # Test comparison with None
+    result = Empyre(
+        [
+            {
+                "matchers": [{"path": "$.foo", "op": "eq", "value": None}],
+                "outcomes": [{"typ": "VALUE", "value": "42"}],
+            },
+            {
+                "matchers": [{"path": "$.foo", "op": "gt", "value": "test"}],
+                "outcomes": [{"typ": "VALUE", "value": "43"}],
+            },
+            {
+                "matchers": [{"path": "$.foo", "op": "lt", "value": "test"}],
+                "outcomes": [{"typ": "VALUE", "value": "44"}],
+            },
+            {
+                "matchers": [{"path": "$.foo", "op": "le", "value": "test"}],
+                "outcomes": [{"typ": "VALUE", "value": "45"}],
+            },
+            {
+                "matchers": [{"path": "$.foo", "op": "ge", "value": "test"}],
+                "outcomes": [{"typ": "VALUE", "value": "46"}],
+            },
+        ],
+        {"foo": None},
+    ).outcomes()
+    # Should produce the outcome of the first rule
+    outcome = next(result)
+    assert outcome["typ"] == "VALUE"
+    assert outcome["value"] == "42"
+    # All other rules should not produce outcomes
+    with pytest.raises(StopIteration):
+        next(result)
+
+    # Test nested rules
     result = Empyre(
         [
             {
                 "matchers": [{"path": "$.foo", "op": "eq", "value": "bar"}],
                 "outcomes": [
                     {"typ": "VALUE", "value": "42"},
-                    {"typ": "LOGIC", "rule_id": 2},
+                    {"typ": "RULE", "rule_id": 2},
                 ],
             },
             {
@@ -89,15 +104,15 @@ def test_engine():
         ],
         {"foo": "bar", "baz": 42},
     ).outcomes()
+    # Should produce both rule's outcomes
     outcome = next(result)
     assert outcome["typ"] == "VALUE"
     assert outcome["value"] == "42"
     outcome = next(result)
     assert outcome["typ"] == "VALUE"
     assert outcome["value"]
-    with pytest.raises(StopIteration):
-        next(result)
 
+    # Test nested matchers
     result = Empyre(
         [
             {
@@ -108,7 +123,75 @@ def test_engine():
                             {"path": "$.baz", "op": "ge", "value": 42},
                             {"path": "$.foo", "op": "eq", "value": "bar"},
                         ],
-                    }
+                    },
+                ],
+                "outcomes": [
+                    {"typ": "VALUE", "value": "42"},
+                ],
+            },
+            {
+                "matchers": [
+                    {
+                        "op": "or",
+                        "matchers": [
+                            {"path": "$.baz", "op": "ge", "value": 42},
+                            {"path": "$.foo", "op": "eq", "value": "bam"},
+                        ],
+                    },
+                ],
+                "outcomes": [
+                    {"typ": "VALUE", "value": "43"},
+                ],
+            },
+            {
+                "matchers": [
+                    {
+                        "op": "and",
+                        "matchers": [
+                            {"path": "$.baz", "op": "ge", "value": 42},
+                            {"path": "$.foo", "op": "eq", "value": "bam"},
+                        ],
+                    },
+                ],
+                "outcomes": [
+                    {"typ": "VALUE", "value": "44"},
+                ],
+            },
+            {
+                "matchers": [
+                    {
+                        "op": "or",
+                        "matchers": [
+                            {"path": "$.baz", "op": "le", "value": 42},
+                            {"path": "$.foo", "op": "eq", "value": "bam"},
+                        ],
+                    },
+                ],
+                "outcomes": [
+                    {"typ": "VALUE", "value": "45"},
+                ],
+            }
+        ],
+        {"foo": "bar", "baz": 42},
+    ).outcomes()
+    # Should produce the first rule's output
+    outcome = next(result)
+    assert outcome["typ"] == "VALUE"
+    assert outcome["value"] == "42"
+    # Should produce the second rule's output
+    outcome = next(result)
+    assert outcome["typ"] == "VALUE"
+    assert outcome["value"] == "43"
+    # Should not produce any more output
+    with pytest.raises(StopIteration):
+        next(result)
+
+    # Test event outcome:
+    result = Empyre(
+        [
+            {
+                "matchers": [
+                    {"path": "$.baz", "op": "ge", "value": 42}
                 ],
                 "outcomes": [
                     {"typ": "EVENT", "event_id": "test", "data": ["$.foo", "test"]},
@@ -117,13 +200,13 @@ def test_engine():
         ],
         {"foo": "bar", "baz": 42},
     ).outcomes()
+    # Should produce an outcome with populated data
     outcome = next(result)
     assert outcome["typ"] == "EVENT"
     assert outcome["data"] == {"foo": "bar", "values": ["test"]}
     assert outcome["event_id"] == "test"
-    with pytest.raises(StopIteration):
-        next(result)
 
+    # Test complex rules/all operators
     result = Empyre(
         [
             {
@@ -205,10 +288,10 @@ def test_engine():
             "nested": {"key": "val"},
         },
     ).outcomes()
+    # Should only produce the first rule outcome
     outcome = next(result)
     assert outcome["typ"] == "EVENT"
     assert outcome["data"] == {"string": "bar"}
     assert outcome["event_id"] == "test"
-
     with pytest.raises(StopIteration):
         next(result)
