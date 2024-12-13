@@ -11,12 +11,14 @@ def test_empty_engine():
     assert not list(results)
 
     # Test no outcomes with no ctx
-    results = Empyre([
+    results = Empyre(
+        [
             {
                 "matchers": [{"path": "$.foo", "op": "eq", "value": "bar"}],
                 "outcomes": [{"typ": "VALUE", "value": "42"}],
             }
-        ]).outcomes()
+        ]
+    ).outcomes()
     assert not list(results)
 
 
@@ -176,7 +178,7 @@ def test_nested():
                 "outcomes": [
                     {"typ": "VALUE", "value": "45"},
                 ],
-            }
+            },
         ],
         {"foo": "bar", "baz": 42},
     ).outcomes()
@@ -198,9 +200,7 @@ def test_event_rendering():
     result = Empyre(
         [
             {
-                "matchers": [
-                    {"path": "$.baz", "op": "ge", "value": 42}
-                ],
+                "matchers": [{"path": "$.baz", "op": "ge", "value": 42}],
                 "outcomes": [
                     {"typ": "EVENT", "event_id": "test", "data": ["$.foo", "test"]},
                 ],
