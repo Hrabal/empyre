@@ -10,6 +10,11 @@ python = "^3.12.2"
 jsonpath-ng = "^1.7.0"
 pydantic = "^2.10.2"
 
+[tool.poetry.group.sqlmodel]
+optional = true
+
+[tool.poetry.group.sqlmodel.dependencies]
+sqlmodel = "^0.0.22"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.4"
