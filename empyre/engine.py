@@ -118,8 +118,5 @@ class Empyre:
                 yield from self._eval_rule(child_rule)
         else:
             if isinstance(outcome, DataOutcome):
-                ret = outcome.model_dump(self.ctx, mode="json")
-            else:
-                ret = outcome.model_dump(mode="json")
-            ret["decision_id"] = self.id
-            yield ret
+                outcome.enrich(self.ctx)
+            yield outcome

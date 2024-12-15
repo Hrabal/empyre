@@ -128,21 +128,15 @@ class Matcher(EmpyreModel):
 
 
 class OutcomeTypes(StrEnum):
+    """Possible outcome types."""
+
     RULE = "RULE"
     VALUE = "VALUE"
     DATA = "DATA"
     EVENT = "EVENT"
 
 
-class Outcome(EmpyreModel):
-    def model_dump(self, *args, **kwargs) -> dict[str, Any]:
-        ret = super().model_dump(*args, **kwargs)
-        ret.pop("name")
-        ret.pop("description")
-        return ret
-
-
-class RuleOutcome(Outcome):
+class RuleOutcome(EmpyreModel):
     """
     Outcome that will evaluate and apply the specified rule,
     allowing for creating evaluation directed graphs.
@@ -152,14 +146,14 @@ class RuleOutcome(Outcome):
     rule_id: int = Field(..., description="The rule id to evaluate next.")
 
 
-class ValueOutcome(Outcome):
+class ValueOutcome(EmpyreModel):
     """Simple value outcome"""
 
     typ: Literal[OutcomeTypes.VALUE] = OutcomeTypes.VALUE
     value: Any = Field(..., description="The value to return.")
 
 
-class DataOutcome(Outcome):
+class DataOutcome(EmpyreModel):
     """
     Outcome that when dumped will contain multiple values.
     The `data` attribute will be used build a data key in the returned dict,
@@ -170,24 +164,25 @@ class DataOutcome(Outcome):
     """
 
     typ: Literal[OutcomeTypes.DATA] = OutcomeTypes.DATA
-    data: list[Any] = Field(
+    outputs: list[Any] = Field(
         default_factory=list, description="A list of values or jsonpaths."
     )
+    data: dict = Field(default_factory=dict)
 
-    def model_dump(self, *args, **kwargs) -> dict[str, Any]:
-        ctx, *args = args
-        ret = super().model_dump(*args, **kwargs)
-        ret["data"] = {}
-        for el in self.data:
+    def enrich(self, ctx: dict) -> None:
+        """
+        Populates the data dict with either values extracted
+        from the context, or values from the defined outputs.
+        """
+        for el in self.outputs:
             try:
                 matches = parse(el).find(ctx)
                 if not matches:
                     raise JSONPathError()
                 for match in matches:
-                    ret["data"][str(match.path)] = match.value
+                    self.data[str(match.path)] = match.value
             except JSONPathError:
-                ret.setdefault("data", {}).setdefault("values", []).append(el)
-        return ret
+                self.data.setdefault("values", []).append(el)
 
 
 class EventOutcome(DataOutcome):

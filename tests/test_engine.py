@@ -35,8 +35,8 @@ def test_comparison():
     ).outcomes()
     # Should produce the defined outcome
     outcome = next(result)
-    assert outcome["typ"] == "VALUE"
-    assert outcome["value"] == "42"
+    assert outcome.typ == "VALUE"
+    assert outcome.value == "42"
     # Should not produce any other outcomes
     with pytest.raises(StopIteration):
         next(result)
@@ -85,8 +85,8 @@ def test_none_comparison():
     ).outcomes()
     # Should produce the outcome of the first rule
     outcome = next(result)
-    assert outcome["typ"] == "VALUE"
-    assert outcome["value"] == "42"
+    assert outcome.typ == "VALUE"
+    assert outcome.value == "42"
     # All other rules should not produce outcomes
     with pytest.raises(StopIteration):
         next(result)
@@ -114,11 +114,15 @@ def test_nested():
     ).outcomes()
     # Should produce both rule's outcomes
     outcome = next(result)
-    assert outcome["typ"] == "VALUE"
-    assert outcome["value"] == "42"
+    assert outcome.typ == "VALUE"
+    assert outcome.value == "42"
     outcome = next(result)
-    assert outcome["typ"] == "VALUE"
-    assert outcome["value"]
+    assert outcome.typ == "VALUE"
+    assert outcome.value
+
+    # Rule 2 is not re-evaluated
+    with pytest.raises(StopIteration):
+        next(result)
 
     # Test nested matchers
     result = Empyre(
@@ -184,12 +188,12 @@ def test_nested():
     ).outcomes()
     # Should produce the first rule's output
     outcome = next(result)
-    assert outcome["typ"] == "VALUE"
-    assert outcome["value"] == "42"
+    assert outcome.typ == "VALUE"
+    assert outcome.value == "42"
     # Should produce the second rule's output
     outcome = next(result)
-    assert outcome["typ"] == "VALUE"
-    assert outcome["value"] == "43"
+    assert outcome.typ == "VALUE"
+    assert outcome.value == "43"
     # Should not produce any more output
     with pytest.raises(StopIteration):
         next(result)
@@ -202,7 +206,7 @@ def test_event_rendering():
             {
                 "matchers": [{"path": "$.baz", "op": "ge", "value": 42}],
                 "outcomes": [
-                    {"typ": "EVENT", "event_id": "test", "data": ["$.foo", "test"]},
+                    {"typ": "EVENT", "event_id": "test", "outputs": ["$.foo", "test"]},
                 ],
             }
         ],
@@ -210,9 +214,10 @@ def test_event_rendering():
     ).outcomes()
     # Should produce an outcome with populated data
     outcome = next(result)
-    assert outcome["typ"] == "EVENT"
-    assert outcome["data"] == {"foo": "bar", "values": ["test"]}
-    assert outcome["event_id"] == "test"
+    assert outcome.typ == "EVENT"
+    assert outcome.data["foo"] == "bar"
+    assert outcome.data["values"] == ["test"]
+    assert outcome.event_id == "test"
 
 
 def test_complex_rules():
@@ -267,7 +272,7 @@ def test_complex_rules():
                     {"path": "$.nested.key", "op": "re", "value": ".*v.*"},
                 ],
                 "outcomes": [
-                    {"typ": "EVENT", "event_id": "test", "data": ["$.string"]},
+                    {"typ": "EVENT", "event_id": "test", "outputs": ["$.string"]},
                 ],
             },
             {
@@ -300,8 +305,9 @@ def test_complex_rules():
     ).outcomes()
     # Should only produce the first rule outcome
     outcome = next(result)
-    assert outcome["typ"] == "EVENT"
-    assert outcome["data"] == {"string": "bar"}
-    assert outcome["event_id"] == "test"
+    assert outcome.typ == "EVENT"
+    assert outcome.data["string"] == "bar"
+    assert outcome.event_id == "test"
+
     with pytest.raises(StopIteration):
         next(result)
