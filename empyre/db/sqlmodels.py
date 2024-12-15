@@ -1,11 +1,6 @@
-try:
-    from sqlmodel import Field, Relationship, SQLModel, create_engine
-except ImportError as e:
-    raise ImportError(
-        "sqlmodel is not installed, run `pip install empyre[sqlmodel]`"
-    ) from e
+from sqlmodel import Field, Relationship, SQLModel
 
-from .models import Matcher, Outcomes, OutcomeTypes, Rule
+from empyre.models import EmpyreModel, Matcher, OutcomeTypes, Rule
 
 
 class MatcherMatchers(SQLModel, table=True):
@@ -22,10 +17,12 @@ class DbMatcher(SQLModel, Matcher, table=True):
     __tablename__ = "em_matchers"
 
     id: int | None = Field(default=None, primary_key=True)
+    value: bytes = None
+    transform: str = None
     matchers: list["DbMatcher"] = Relationship(link_model=MatcherMatchers)
 
 
-class DbOutcome(SQLModel, table=True):
+class DbOutcome(SQLModel, EmpyreModel, table=True):
     __tablename__ = "em_outcomes"
 
     id: int | None = Field(default=None, primary_key=True)

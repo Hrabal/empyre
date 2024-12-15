@@ -15,15 +15,23 @@ class Empyre:
 
     def __init__(self, rules: list[dict | Rule] = None, ctx: dict = None):
         self.id = uuid4().hex
-        self.rules = {}
-        for i, rule in enumerate(rules or []):
-            rule = Rule.model_validate(rule)
-            rule.id = rule.id or i + 1
-            self.rules[rule.id] = rule
-        self.ctx = ctx or {}
+        self._rules = {}
+        if rules:
+            self.add_rules(rules)
+        self._ctx = ctx or {}
 
     def _log(self, msg: str):
         self._logger.debug(f"Evaluation[{self.id}] {msg}")
+
+    def set_ctx(self, ctx: dict):
+        self._ctx = ctx
+
+    def add_rules(self, rules: list[dict | Rule]):
+        existing = len(self._rules)
+        for i, rule in enumerate(rules or []):
+            rule = Rule.model_validate(rule)
+            rule.id = rule.id or i + existing
+            self._rules[rule.id] = rule
 
     def outcomes(self):
         """
@@ -31,9 +39,9 @@ class Empyre:
         the matching, applicable rules against the current context.
         """
         self._log(
-            f"Evaluating rules {'-'.join(map(str, self.rules.values()))} rules against {self.ctx}"
+            f"Evaluating rules {'-'.join(map(str, self._rules.values()))} rules against {self._ctx}"
         )
-        for rule in self.rules.values():
+        for rule in self._rules.values():
             if not rule.applicable or not rule.root:
                 continue
             yield from self._eval_rule(rule)
@@ -66,7 +74,7 @@ class Empyre:
         """
         matches = []
         # Extract values from the context using the jsonpath
-        for el in parse(matcher.path).find(self.ctx):
+        for el in parse(matcher.path).find(self._ctx):
             # Eventually apply a transformation on the found value
             val = self._prepare_val(el.value, matcher)
             if matcher.op == Operator.in_:
@@ -115,10 +123,10 @@ class Empyre:
         """Applies the outcome if needed , or yields the dumped outcome."""
         if outcome.typ == OutcomeTypes.RULE:
             # Gets the defined rule and eventually yield values from it
-            child_rule = self.rules[outcome.rule_id]
+            child_rule = self._rules[outcome.rule_id]
             if child_rule.applicable:
                 yield from self._eval_rule(child_rule)
         else:
             if isinstance(outcome, DataOutcome):
-                outcome.enrich(self.ctx)
+                outcome.enrich(self._ctx)
             yield outcome
