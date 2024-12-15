@@ -52,6 +52,7 @@ class Empyre:
 
     @staticmethod
     def _prepare_val(val: Any, matcher: Matcher) -> Any:
+        """Eventually casts/transforms the value."""
         try:
             return matcher.transform(val)
         except (TypeError, ValueError):
@@ -113,6 +114,7 @@ class Empyre:
     def _produce(self, outcome: Outcomes):
         """Applies the outcome if needed , or yields the dumped outcome."""
         if outcome.typ == OutcomeTypes.RULE:
+            # Gets the defined rule and eventually yield values from it
             child_rule = self.rules[outcome.rule_id]
             if child_rule.applicable:
                 yield from self._eval_rule(child_rule)
