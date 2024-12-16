@@ -3,6 +3,10 @@ TODO
 # Empyre
 Rule Engine written in Python.
 
+Why? Why not.
+
+Why the name? Good 'ol nerdy Star Wars reference in which the Empire rules the galaxy.
+
 ## Concepts
 
 ### Context
