@@ -1,1 +1,1 @@
-from .engine import Empyre
+from .engine import Empyre  # noqa
