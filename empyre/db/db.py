@@ -9,8 +9,8 @@ class EmpyreDb:
     def __init__(self, db_uri: str):
         db_uri = URL.create(
             "postgresql",
-            username="hrabal",
-            password="Sincizi0Z|lla",
+            username="user",
+            password="pwd",
             host="localhost",
             database="empyre",
         )
